@@ -225,6 +225,9 @@ public abstract class AbstractEnvironment implements ConfigurableEnvironment {
 	}
 
 	/**
+	 *
+	 * 返回环境变量中spring.profiles.active指定的配置文件名称
+	 *
 	 * Return the set of active profiles as explicitly set through
 	 * {@link #setActiveProfiles} or if the current set of active profiles
 	 * is empty, check for the presence of the {@value #ACTIVE_PROFILES_PROPERTY_NAME}
@@ -233,10 +236,13 @@ public abstract class AbstractEnvironment implements ConfigurableEnvironment {
 	 * @see #ACTIVE_PROFILES_PROPERTY_NAME
 	 */
 	protected Set<String> doGetActiveProfiles() {
+		//同步锁
 		synchronized (this.activeProfiles) {
 			if (this.activeProfiles.isEmpty()) {
+				//从jvm环境变量中读取spring.profiles.active属性
 				String profiles = getProperty(ACTIVE_PROFILES_PROPERTY_NAME);
 				if (StringUtils.hasText(profiles)) {
+					//将指定的配置文件（名） 添加到activeProfiles中
 					setActiveProfiles(StringUtils.commaDelimitedListToStringArray(
 							StringUtils.trimAllWhitespace(profiles)));
 				}

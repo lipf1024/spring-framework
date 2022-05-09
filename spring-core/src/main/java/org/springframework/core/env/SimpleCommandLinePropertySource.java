@@ -101,6 +101,7 @@ public class SimpleCommandLinePropertySource extends CommandLinePropertySource<C
 	 * and backed by the given {@code String[]} of command line arguments.
 	 */
 	public SimpleCommandLinePropertySource(String name, String[] args) {
+		//设置命令行参数 命令行参数解析
 		super(name, new SimpleCommandLineArgsParser().parse(args));
 	}
 
