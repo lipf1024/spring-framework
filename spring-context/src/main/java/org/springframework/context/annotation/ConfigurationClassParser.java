@@ -161,17 +161,24 @@ class ConfigurationClassParser {
 		this.environment = environment;
 		this.resourceLoader = resourceLoader;
 		this.registry = registry;
+		//创建@ComponentScan类的解析器
 		this.componentScanParser = new ComponentScanAnnotationParser(
 				environment, resourceLoader, componentScanBeanNameGenerator, registry);
+		//处理@Condition注解
 		this.conditionEvaluator = new ConditionEvaluator(registry, environment, resourceLoader);
 	}
 
 
+	/**
+	 * 解析配置类
+	 * @param configCandidates
+	 */
 	public void parse(Set<BeanDefinitionHolder> configCandidates) {
 		for (BeanDefinitionHolder holder : configCandidates) {
 			BeanDefinition bd = holder.getBeanDefinition();
 			try {
 				if (bd instanceof AnnotatedBeanDefinition) {
+					//解析
 					parse(((AnnotatedBeanDefinition) bd).getMetadata(), holder.getBeanName());
 				}
 				else if (bd instanceof AbstractBeanDefinition && ((AbstractBeanDefinition) bd).hasBeanClass()) {
@@ -222,11 +229,18 @@ class ConfigurationClassParser {
 	}
 
 
+	/**
+	 * 解析配置类
+	 * @param configClass
+	 * @param filter
+	 * @throws IOException
+	 */
 	protected void processConfigurationClass(ConfigurationClass configClass, Predicate<String> filter) throws IOException {
+		//评估是否要跳过当前配置类 如果不满足条件就跳过当前配置类
 		if (this.conditionEvaluator.shouldSkip(configClass.getMetadata(), ConfigurationPhase.PARSE_CONFIGURATION)) {
 			return;
 		}
-
+        //直接从缓存中拿到解析结果
 		ConfigurationClass existingClass = this.configurationClasses.get(configClass);
 		if (existingClass != null) {
 			if (configClass.isImported()) {
@@ -245,6 +259,7 @@ class ConfigurationClassParser {
 		}
 
 		// Recursively process the configuration class and its superclass hierarchy.
+		//递归的处理配置类及其超类的层次结构
 		SourceClass sourceClass = asSourceClass(configClass, filter);
 		do {
 			sourceClass = doProcessConfigurationClass(configClass, sourceClass, filter);
@@ -255,6 +270,10 @@ class ConfigurationClassParser {
 	}
 
 	/**
+	 * 解析配置类
+	 * 从配置类class中读取注解、成员和方法来构建一个完整的ConfigurationClass，
+	 * 当处理到相关的资源时该方法可以被多次调用
+	 *
 	 * Apply processing and build a complete {@link ConfigurationClass} by reading the
 	 * annotations, members and methods from the source class. This method can be called
 	 * multiple times as relevant sources are discovered.
@@ -266,9 +285,10 @@ class ConfigurationClassParser {
 	protected final SourceClass doProcessConfigurationClass(
 			ConfigurationClass configClass, SourceClass sourceClass, Predicate<String> filter)
 			throws IOException {
-
+        //如果当前类上有@Component元注解
 		if (configClass.getMetadata().isAnnotated(Component.class.getName())) {
 			// Recursively process any member (nested) classes first
+			//先处理嵌套类
 			processMemberClasses(configClass, sourceClass, filter);
 		}
 
@@ -347,22 +367,31 @@ class ConfigurationClassParser {
 	}
 
 	/**
+	 * 注册配置类的内部成员类
+	 *
 	 * Register member (nested) classes that happen to be configuration classes themselves.
 	 */
 	private void processMemberClasses(ConfigurationClass configClass, SourceClass sourceClass,
 			Predicate<String> filter) throws IOException {
-
+		//解析内部成员类
 		Collection<SourceClass> memberClasses = sourceClass.getMemberClasses();
+
+
 		if (!memberClasses.isEmpty()) {
+			//内部类也是配置类的集合
 			List<SourceClass> candidates = new ArrayList<>(memberClasses.size());
 			for (SourceClass memberClass : memberClasses) {
+				//如果内部类时配置类
 				if (ConfigurationClassUtils.isConfigurationCandidate(memberClass.getMetadata()) &&
 						!memberClass.getMetadata().getClassName().equals(configClass.getMetadata().getClassName())) {
+					//添加到集合
 					candidates.add(memberClass);
 				}
 			}
+			//sort
 			OrderComparator.sort(candidates);
 			for (SourceClass candidate : candidates) {
+				//
 				if (this.importStack.contains(configClass)) {
 					this.problemReporter.error(new CircularImportProblem(configClass, this.importStack));
 				}
@@ -635,13 +664,19 @@ class ConfigurationClassParser {
 
 
 	/**
+	 * 获取configurationClass对应的SourceClass实例
 	 * Factory method to obtain a {@link SourceClass} from a {@link ConfigurationClass}.
+	 *
 	 */
 	private SourceClass asSourceClass(ConfigurationClass configurationClass, Predicate<String> filter) throws IOException {
+		//配置类的元数据
 		AnnotationMetadata metadata = configurationClass.getMetadata();
+		//如果是ClassMetaData的标准实现
 		if (metadata instanceof StandardAnnotationMetadata) {
+			//直接给获配置类的class来生成SourceClass
 			return asSourceClass(((StandardAnnotationMetadata) metadata).getIntrospectedClass(), filter);
 		}
+		//否则获取全类名生成SourceClass
 		return asSourceClass(metadata.getClassName(), filter);
 	}
 
@@ -655,6 +690,7 @@ class ConfigurationClassParser {
 		try {
 			// Sanity test that we can reflectively read annotations,
 			// including Class attributes; if not -> fall back to ASM
+			// 健壮性的验证
 			for (Annotation ann : classType.getDeclaredAnnotations()) {
 				AnnotationUtils.validateAnnotation(ann);
 			}
@@ -662,6 +698,7 @@ class ConfigurationClassParser {
 		}
 		catch (Throwable ex) {
 			// Enforce ASM via class name resolution
+			//通过className 解析执行ASM
 			return asSourceClass(classType.getName(), filter);
 		}
 	}
@@ -686,6 +723,7 @@ class ConfigurationClassParser {
 		}
 		if (className.startsWith("java")) {
 			// Never use ASM for core java types
+			//永远不把ASM用于java核心类
 			try {
 				return new SourceClass(ClassUtils.forName(className, this.resourceLoader.getClassLoader()));
 			}
@@ -693,6 +731,7 @@ class ConfigurationClassParser {
 				throw new NestedIOException("Failed to load class [" + className + "]", ex);
 			}
 		}
+		//使用metadataReaderFactory获取class的MetaDataReader信息
 		return new SourceClass(this.metadataReaderFactory.getMetadataReader(className));
 	}
 
@@ -970,9 +1009,11 @@ class ConfigurationClassParser {
 			if (sourceToProcess instanceof Class) {
 				Class<?> sourceClass = (Class<?>) sourceToProcess;
 				try {
+					//获取所有的内部类
 					Class<?>[] declaredClasses = sourceClass.getDeclaredClasses();
 					List<SourceClass> members = new ArrayList<>(declaredClasses.length);
 					for (Class<?> declaredClass : declaredClasses) {
+						//生成SourceClass实例
 						members.add(asSourceClass(declaredClass, DEFAULT_EXCLUSION_FILTER));
 					}
 					return members;

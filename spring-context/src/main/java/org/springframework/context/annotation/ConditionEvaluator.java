@@ -78,38 +78,51 @@ class ConditionEvaluator {
 	 * @return if the item should be skipped
 	 */
 	public boolean shouldSkip(@Nullable AnnotatedTypeMetadata metadata, @Nullable ConfigurationPhase phase) {
+		//当前类上是否有@Conditional注解
 		if (metadata == null || !metadata.isAnnotated(Conditional.class.getName())) {
 			return false;
 		}
 
+		//判断是配置类还是普通类
 		if (phase == null) {
+			//1. 有注解信息
+			//2. 是个配置类
 			if (metadata instanceof AnnotationMetadata &&
 					ConfigurationClassUtils.isConfigurationCandidate((AnnotationMetadata) metadata)) {
 				return shouldSkip(metadata, ConfigurationPhase.PARSE_CONFIGURATION);
 			}
+			//普通类
 			return shouldSkip(metadata, ConfigurationPhase.REGISTER_BEAN);
 		}
 
+
+		//获取@Conditional 指定的所有Condition class 的实例
 		List<Condition> conditions = new ArrayList<>();
 		for (String[] conditionClasses : getConditionClasses(metadata)) {
 			for (String conditionClass : conditionClasses) {
+				//反射实例化
 				Condition condition = getCondition(conditionClass, this.context.getClassLoader());
 				conditions.add(condition);
 			}
 		}
 
+		//sort
 		AnnotationAwareOrderComparator.sort(conditions);
 
 		for (Condition condition : conditions) {
 			ConfigurationPhase requiredPhase = null;
+			//是ConfigurationCondition类型
+			//可以选择是在普通bean注册时生效还是在配置类注册时生效
+			//提供更细粒度的选择
 			if (condition instanceof ConfigurationCondition) {
 				requiredPhase = ((ConfigurationCondition) condition).getConfigurationPhase();
 			}
+			//不满足注入条件
 			if ((requiredPhase == null || requiredPhase == phase) && !condition.matches(this.context, metadata)) {
 				return true;
 			}
 		}
-
+		//满足注入条件
 		return false;
 	}
 
@@ -122,6 +135,7 @@ class ConditionEvaluator {
 
 	private Condition getCondition(String conditionClassName, @Nullable ClassLoader classloader) {
 		Class<?> conditionClass = ClassUtils.resolveClassName(conditionClassName, classloader);
+
 		return (Condition) BeanUtils.instantiateClass(conditionClass);
 	}
 

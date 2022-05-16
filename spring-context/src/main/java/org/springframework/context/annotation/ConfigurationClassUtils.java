@@ -55,6 +55,7 @@ abstract class ConfigurationClassUtils {
 
 	public static final String CONFIGURATION_CLASS_LITE = "lite";
 
+	//org.springframework.context.annotation.ConfigurationClassPostProcessor.configurationClass
 	public static final String CONFIGURATION_CLASS_ATTRIBUTE =
 			Conventions.getQualifiedAttributeName(ConfigurationClassPostProcessor.class, "configurationClass");
 
@@ -75,6 +76,11 @@ abstract class ConfigurationClassUtils {
 
 
 	/**
+	 *
+	 * 检查当前的BeanDefinition是一个配置类
+	 * （或者是@Configuration/或@Component修饰的类中的一个内嵌组件，也会被自动注册）
+	 * 并作相应的标记
+	 *
 	 * Check whether the given bean definition is a candidate for a configuration class
 	 * (or a nested component class declared within a configuration/component class,
 	 * to be auto-registered as well), and mark it accordingly.
@@ -85,27 +91,39 @@ abstract class ConfigurationClassUtils {
 	public static boolean checkConfigurationClassCandidate(
 			BeanDefinition beanDef, MetadataReaderFactory metadataReaderFactory) {
 
+		//获取class的全限定名
 		String className = beanDef.getBeanClassName();
+		//false
 		if (className == null || beanDef.getFactoryMethodName() != null) {
 			return false;
 		}
-
+        //包含注解信息的元数据
 		AnnotationMetadata metadata;
+		//1. 如果BeanDefinition的类型是AnnotatedBeanDefinition
+		//2. TODO 不知道为了验证什么
 		if (beanDef instanceof AnnotatedBeanDefinition &&
 				className.equals(((AnnotatedBeanDefinition) beanDef).getMetadata().getClassName())) {
 			// Can reuse the pre-parsed metadata from the given BeanDefinition...
 			metadata = ((AnnotatedBeanDefinition) beanDef).getMetadata();
 		}
+		//1. BeanDefinition的类型是AbstractBeanDefinition
+		//2. 当前beanDefinition是否描述的是一个class的信息
 		else if (beanDef instanceof AbstractBeanDefinition && ((AbstractBeanDefinition) beanDef).hasBeanClass()) {
 			// Check already loaded Class if present...
 			// since we possibly can't even load the class file for this Class.
+
+			//获取BeanDefinition描述的class
 			Class<?> beanClass = ((AbstractBeanDefinition) beanDef).getBeanClass();
+			//如果当前class是BeanFactoryPostProcessor/BeanPostProcessor/AopInfrastructureBean/EventListenerFactory
+			//返回false
 			if (BeanFactoryPostProcessor.class.isAssignableFrom(beanClass) ||
 					BeanPostProcessor.class.isAssignableFrom(beanClass) ||
 					AopInfrastructureBean.class.isAssignableFrom(beanClass) ||
 					EventListenerFactory.class.isAssignableFrom(beanClass)) {
+				//不应该作为配置类来解析
 				return false;
 			}
+			//反射获取当前class的注解元数据
 			metadata = AnnotationMetadata.introspect(beanClass);
 		}
 		else {
@@ -121,19 +139,25 @@ abstract class ConfigurationClassUtils {
 				return false;
 			}
 		}
-
+        //获取@Configuration的属性值
 		Map<String, Object> config = metadata.getAnnotationAttributes(Configuration.class.getName());
+		//如果有@Configuration注解 且 proxyBeanMethods属性是true
 		if (config != null && !Boolean.FALSE.equals(config.get("proxyBeanMethods"))) {
+			//full 模式
 			beanDef.setAttribute(CONFIGURATION_CLASS_ATTRIBUTE, CONFIGURATION_CLASS_FULL);
 		}
+		//如果有@Configuration注解 或者是配置相关的类
 		else if (config != null || isConfigurationCandidate(metadata)) {
+			//proxyBeanMethods=false lite 模式
 			beanDef.setAttribute(CONFIGURATION_CLASS_ATTRIBUTE, CONFIGURATION_CLASS_LITE);
 		}
 		else {
+			//不应该中作为配置类来解析
 			return false;
 		}
 
 		// It's a full or lite configuration candidate... Let's determine the order value, if any.
+		//获取@Order（如果有的话）设置的优先级
 		Integer order = getOrder(metadata);
 		if (order != null) {
 			beanDef.setAttribute(ORDER_ATTRIBUTE, order);
@@ -151,18 +175,22 @@ abstract class ConfigurationClassUtils {
 	 */
 	public static boolean isConfigurationCandidate(AnnotationMetadata metadata) {
 		// Do not consider an interface or an annotation...
+		//当前仅仅是个接口
 		if (metadata.isInterface()) {
 			return false;
 		}
 
 		// Any of the typical annotations found?
 		for (String indicator : candidateIndicators) {
+			//类上包含有以下的四个元注解
+			//@Component/@ComponentScan/@Import/@ImportResource
 			if (metadata.isAnnotated(indicator)) {
 				return true;
 			}
 		}
 
 		// Finally, let's look for @Bean methods...
+		//类中是否有包含@Bean注解的method
 		return hasBeanMethods(metadata);
 	}
 

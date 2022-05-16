@@ -109,6 +109,7 @@ public abstract class AbstractEnvironment implements ConfigurableEnvironment {
 
 	private final MutablePropertySources propertySources = new MutablePropertySources();
 
+	//用了个代理模式
 	private final ConfigurablePropertyResolver propertyResolver =
 			new PropertySourcesPropertyResolver(this.propertySources);
 
@@ -239,7 +240,7 @@ public abstract class AbstractEnvironment implements ConfigurableEnvironment {
 		//同步锁
 		synchronized (this.activeProfiles) {
 			if (this.activeProfiles.isEmpty()) {
-				//从jvm环境变量中读取spring.profiles.active属性
+				//TODO PropertySourcesPropertyResolver.getProperty
 				String profiles = getProperty(ACTIVE_PROFILES_PROPERTY_NAME);
 				if (StringUtils.hasText(profiles)) {
 					//将指定的配置文件（名） 添加到activeProfiles中

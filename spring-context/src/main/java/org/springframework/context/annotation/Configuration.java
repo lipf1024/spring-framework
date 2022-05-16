@@ -458,6 +458,11 @@ public @interface Configuration {
 	 * behaviorally equivalent to removing the {@code @Configuration} stereotype.
 	 * @since 5.2
 	 */
+	/**
+	 *1.当设置为true的时候，说明，当配置类中的某个bean需要配置类中其他的bean对象的时候，是去spring 容器拿的，所以被依赖的那个bean只会创建一次，
+	 * 2.当设置为false的时候，说明当配置类中的某个bean需要配置类中其他bean对象的时候，是立即创建的，而不是去找spring容器获取。
+	 * @return
+	 */
 	boolean proxyBeanMethods() default true;
 
 }

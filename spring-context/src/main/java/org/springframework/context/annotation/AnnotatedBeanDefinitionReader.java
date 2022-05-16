@@ -84,7 +84,9 @@ public class AnnotatedBeanDefinitionReader {
 		Assert.notNull(registry, "BeanDefinitionRegistry must not be null");
 		Assert.notNull(environment, "Environment must not be null");
 		this.registry = registry;
+		//处理@Conditional注解
 		this.conditionEvaluator = new ConditionEvaluator(registry, environment, null);
+		//TODO 设置注册器 注册一些和注解处理相关的PostProcessor
 		AnnotationConfigUtils.registerAnnotationConfigProcessors(this.registry);
 	}
 
@@ -234,6 +236,7 @@ public class AnnotatedBeanDefinitionReader {
 	}
 
 	/**
+	 * 注册一个给定的class的bean，通过class上声明的注解
 	 * Register a bean from the given bean class, deriving its metadata from
 	 * class-declared annotations.
 	 * @param beanClass the class of the bean
@@ -250,7 +253,9 @@ public class AnnotatedBeanDefinitionReader {
 			@Nullable Class<? extends Annotation>[] qualifiers, @Nullable Supplier<T> supplier,
 			@Nullable BeanDefinitionCustomizer[] customizers) {
 
+		//获取clss的BeanDefinition对象
 		AnnotatedGenericBeanDefinition abd = new AnnotatedGenericBeanDefinition(beanClass);
+		//处理@Conditional注解 判断是否满足注入的条件
 		if (this.conditionEvaluator.shouldSkip(abd.getMetadata())) {
 			return;
 		}
