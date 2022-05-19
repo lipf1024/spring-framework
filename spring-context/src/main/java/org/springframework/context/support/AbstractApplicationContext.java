@@ -1384,6 +1384,7 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 
 	@Override
 	public Resource[] getResources(String locationPattern) throws IOException {
+		//PathMatchingResourcePatternResolver.getResources
 		return this.resourcePatternResolver.getResources(locationPattern);
 	}
 

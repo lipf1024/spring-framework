@@ -118,7 +118,9 @@ public final class SpringFactoriesLoader {
 	 * @see #loadFactories
 	 */
 	public static List<String> loadFactoryNames(Class<?> factoryType, @Nullable ClassLoader classLoader) {
+		//EnableAutoConfiguration
 		String factoryTypeName = factoryType.getName();
+		//获取EnableAutoConfiguration的实现类
 		return loadSpringFactories(classLoader).getOrDefault(factoryTypeName, Collections.emptyList());
 	}
 

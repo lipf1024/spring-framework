@@ -100,7 +100,7 @@ abstract class ConfigurationClassUtils {
         //包含注解信息的元数据
 		AnnotationMetadata metadata;
 		//1. 如果BeanDefinition的类型是AnnotatedBeanDefinition
-		//2. TODO 不知道为了验证什么
+		//2. 避免循环引用
 		if (beanDef instanceof AnnotatedBeanDefinition &&
 				className.equals(((AnnotatedBeanDefinition) beanDef).getMetadata().getClassName())) {
 			// Can reuse the pre-parsed metadata from the given BeanDefinition...

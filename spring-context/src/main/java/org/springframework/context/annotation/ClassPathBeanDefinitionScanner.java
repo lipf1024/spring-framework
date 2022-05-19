@@ -273,22 +273,30 @@ public class ClassPathBeanDefinitionScanner extends ClassPathScanningCandidateCo
 		Assert.notEmpty(basePackages, "At least one base package must be specified");
 		Set<BeanDefinitionHolder> beanDefinitions = new LinkedHashSet<>();
 		for (String basePackage : basePackages) {
+			//找到所有候选的组件
 			Set<BeanDefinition> candidates = findCandidateComponents(basePackage);
 			for (BeanDefinition candidate : candidates) {
+				//@Socpe 注解信息
 				ScopeMetadata scopeMetadata = this.scopeMetadataResolver.resolveScopeMetadata(candidate);
 				candidate.setScope(scopeMetadata.getScopeName());
+				//根据策略获取命名
 				String beanName = this.beanNameGenerator.generateBeanName(candidate, this.registry);
 				if (candidate instanceof AbstractBeanDefinition) {
+					//后置处理
 					postProcessBeanDefinition((AbstractBeanDefinition) candidate, beanName);
 				}
 				if (candidate instanceof AnnotatedBeanDefinition) {
+					//处理一些通用注解
+					//@Lazy @Primary @DependsOn @Role @Description
 					AnnotationConfigUtils.processCommonDefinitionAnnotations((AnnotatedBeanDefinition) candidate);
 				}
+				//检查是否要注册当前的bean定义
 				if (checkCandidate(beanName, candidate)) {
 					BeanDefinitionHolder definitionHolder = new BeanDefinitionHolder(candidate, beanName);
 					definitionHolder =
 							AnnotationConfigUtils.applyScopedProxyMode(scopeMetadata, definitionHolder, this.registry);
 					beanDefinitions.add(definitionHolder);
+					//注册BeanDefinition
 					registerBeanDefinition(definitionHolder, this.registry);
 				}
 			}
@@ -303,6 +311,7 @@ public class ClassPathBeanDefinitionScanner extends ClassPathScanningCandidateCo
 	 * @param beanName the generated bean name for the given bean
 	 */
 	protected void postProcessBeanDefinition(AbstractBeanDefinition beanDefinition, String beanName) {
+		//设置一些默认值
 		beanDefinition.applyDefaults(this.beanDefinitionDefaults);
 		if (this.autowireCandidatePatterns != null) {
 			beanDefinition.setAutowireCandidate(PatternMatchUtils.simpleMatch(this.autowireCandidatePatterns, beanName));
@@ -336,11 +345,14 @@ public class ClassPathBeanDefinitionScanner extends ClassPathScanningCandidateCo
 		if (!this.registry.containsBeanDefinition(beanName)) {
 			return true;
 		}
+		//在前已经存在的
 		BeanDefinition existingDef = this.registry.getBeanDefinition(beanName);
+		//获取原始的BeanDefinition
 		BeanDefinition originatingDef = existingDef.getOriginatingBeanDefinition();
 		if (originatingDef != null) {
 			existingDef = originatingDef;
 		}
+		//是否跳过当前的BeanDefinition
 		if (isCompatible(beanDefinition, existingDef)) {
 			return false;
 		}

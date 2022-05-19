@@ -57,16 +57,29 @@ abstract class ParserStrategyUtils {
 
 		Assert.notNull(clazz, "Class must not be null");
 		Assert.isAssignable(assignableTo, clazz);
+		//接口不能被实例化
 		if (clazz.isInterface()) {
 			throw new BeanInstantiationException(clazz, "Specified class is an interface");
 		}
+		//获取classload
 		ClassLoader classLoader = (registry instanceof ConfigurableBeanFactory ?
 				((ConfigurableBeanFactory) registry).getBeanClassLoader() : resourceLoader.getClassLoader());
+		//创建实例
 		T instance = (T) createInstance(clazz, environment, resourceLoader, registry, classLoader);
+		//调用对应的aware接口
 		ParserStrategyUtils.invokeAwareMethods(instance, environment, resourceLoader, registry, classLoader);
 		return instance;
 	}
 
+	/**
+	 * 创建实例
+	 * @param clazz
+	 * @param environment
+	 * @param resourceLoader
+	 * @param registry
+	 * @param classLoader
+	 * @return
+	 */
 	private static Object createInstance(Class<?> clazz, Environment environment,
 			ResourceLoader resourceLoader, BeanDefinitionRegistry registry,
 			@Nullable ClassLoader classLoader) {

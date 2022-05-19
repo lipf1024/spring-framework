@@ -98,6 +98,7 @@ public interface AnnotatedTypeMetadata {
 	default Map<String, Object> getAnnotationAttributes(String annotationName,
 			boolean classValuesAsString) {
 
+		//首先选择直接声明的 如果没有 就选择最近的
 		MergedAnnotation<Annotation> annotation = getAnnotations().get(annotationName,
 				null, MergedAnnotationSelectors.firstDirectlyDeclared());
 		if (!annotation.isPresent()) {

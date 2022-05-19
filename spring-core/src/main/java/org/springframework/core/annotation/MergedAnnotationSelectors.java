@@ -49,6 +49,7 @@ public abstract class MergedAnnotationSelectors {
 	}
 
 	/**
+	 * 尽量选择一个直接声明的注解 如果没有就选择一个最近的
 	 * Select the first directly declared annotation when possible. If no direct
 	 * annotations are declared then the nearest annotation is selected.
 	 * @return a selector that picks the first directly declared annotation whenever possible

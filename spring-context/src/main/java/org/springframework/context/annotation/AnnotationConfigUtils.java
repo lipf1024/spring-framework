@@ -292,6 +292,14 @@ public abstract class AnnotationConfigUtils {
 		return AnnotationAttributes.fromMap(metadata.getAnnotationAttributes(annotationClassName, false));
 	}
 
+	/**
+	 * 获取直接写在类上的注解属性或者是注解继承的属性
+	 * (相同的的属性名会被覆盖)
+	 * @param metadata
+	 * @param containerClass
+	 * @param annotationClass
+	 * @return
+	 */
 	static Set<AnnotationAttributes> attributesForRepeatable(AnnotationMetadata metadata,
 			Class<?> containerClass, Class<?> annotationClass) {
 
@@ -305,12 +313,15 @@ public abstract class AnnotationConfigUtils {
 		Set<AnnotationAttributes> result = new LinkedHashSet<>();
 
 		// Direct annotation present?
+		// 指定注解或者作为元注解的属性值
 		addAttributesIfNotNull(result, metadata.getAnnotationAttributes(annotationClassName, false));
 
 		// Container annotation present?
+		// 解析注解容器
 		Map<String, Object> container = metadata.getAnnotationAttributes(containerClassName, false);
 		if (container != null && container.containsKey("value")) {
 			for (Map<String, Object> containedAttributes : (Map<String, Object>[]) container.get("value")) {
+				//属性
 				addAttributesIfNotNull(result, containedAttributes);
 			}
 		}
